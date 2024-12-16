@@ -1,72 +1,23 @@
 import db from '../config/database';
-import type { Wishlist, WishlistItem } from '../../types';
+import { queries } from './queries/wishlist.queries';
+import { DB_CONFIG } from '../config/constants';
+import type { Wishlist } from '../../types';
 
-export const getPublicWishlists = (page: number = 1, limit: number = 10) => {
-  const offset = (page - 1) * limit;
-  return db.prepare(`
-    SELECT w.*, 
-           json_group_array(
-             CASE WHEN i.id IS NOT NULL THEN json_object(
-               'id', i.id,
-               'name', i.name,
-               'specification', i.specification,
-               'howToBuy', i.howToBuy,
-               'price', i.price,
-               'priority', i.priority,
-               'comments', i.comments,
-               'lastEditedAt', i.lastEditedAt,
-               'isBought', i.isBought
-             )
-             ELSE NULL END
-           ) as items
-    FROM wishlists w
-    LEFT JOIN wishlist_items i ON w.systemName = i.wishlistSystemName
-    WHERE w.isPublic = 1
-    GROUP BY w.systemName
-    ORDER BY w.createdAt DESC
-    LIMIT ? OFFSET ?
-  `).all(limit, offset);
+export const getPublicWishlists = (page: number = 1) => {
+  const offset = (page - 1) * DB_CONFIG.ITEMS_PER_PAGE;
+  return db.prepare(queries.getPublicWishlists)
+    .all(DB_CONFIG.ITEMS_PER_PAGE, offset);
 };
 
 export const getWishlistBySystemName = (systemName: string) => {
-  return db.prepare(`
-    SELECT w.*, 
-           json_group_array(
-             CASE WHEN i.id IS NOT NULL THEN json_object(
-               'id', i.id,
-               'name', i.name,
-               'specification', i.specification,
-               'howToBuy', i.howToBuy,
-               'price', i.price,
-               'priority', i.priority,
-               'comments', i.comments,
-               'lastEditedAt', i.lastEditedAt,
-               'isBought', i.isBought
-             )
-             ELSE NULL END
-           ) as items
-    FROM wishlists w
-    LEFT JOIN wishlist_items i ON w.systemName = i.wishlistSystemName
-    WHERE w.systemName = ?
-    GROUP BY w.systemName
-  `).get(systemName);
+  return db.prepare(queries.getWishlistBySystemName).get(systemName);
 };
 
 export const createWishlist = (wishlist: Wishlist) => {
   const { items, ...wishlistData } = wishlist;
   
-  const insertWishlist = db.prepare(`
-    INSERT INTO wishlists (
-      systemName, userName, title, isPublic, password, createdAt, lastEditedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const insertItem = db.prepare(`
-    INSERT INTO wishlist_items (
-      id, wishlistSystemName, name, specification, howToBuy,
-      price, priority, comments, lastEditedAt, isBought
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  const insertWishlist = db.prepare(queries.insertWishlist);
+  const insertItem = db.prepare(queries.insertWishlistItem);
 
   try {
     db.transaction(() => {
@@ -108,28 +59,9 @@ export const createWishlist = (wishlist: Wishlist) => {
 export const updateWishlist = (systemName: string, wishlist: Wishlist) => {
   const { items, ...wishlistData } = wishlist;
 
-  const updateWishlistStmt = db.prepare(`
-    UPDATE wishlists
-    SET userName = ?,
-        title = ?,
-        isPublic = ?,
-        password = ?,
-        lastEditedAt = ?
-    WHERE systemName = ?
-  `);
-
-  const deleteItems = db.prepare('DELETE FROM wishlist_items WHERE wishlistSystemName = ?');
-
-  const insertItem = db.prepare(`
-    INSERT INTO wishlist_items (
-      id, wishlistSystemName, name, specification, howToBuy,
-      price, priority, comments, lastEditedAt, isBought
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
   try {
     db.transaction(() => {
-      updateWishlistStmt.run(
+      db.prepare(queries.updateWishlist).run(
         wishlistData.userName,
         wishlistData.title,
         wishlistData.isPublic ? 1 : 0,
@@ -138,9 +70,10 @@ export const updateWishlist = (systemName: string, wishlist: Wishlist) => {
         systemName
       );
 
-      deleteItems.run(systemName);
+      db.prepare(queries.deleteWishlistItems).run(systemName);
 
       if (items?.length > 0) {
+        const insertItem = db.prepare(queries.insertWishlistItem);
         for (const item of items) {
           insertItem.run(
             item.id,
@@ -166,6 +99,6 @@ export const updateWishlist = (systemName: string, wishlist: Wishlist) => {
 };
 
 export const verifyWishlistPassword = (systemName: string, password: string) => {
-  const wishlist = db.prepare('SELECT password FROM wishlists WHERE systemName = ?').get(systemName);
+  const wishlist = db.prepare(queries.verifyPassword).get(systemName);
   return wishlist && wishlist.password === password;
 };
