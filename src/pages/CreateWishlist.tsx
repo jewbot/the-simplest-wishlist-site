@@ -13,11 +13,35 @@ export default function CreateWishlist() {
     password: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const systemName = generateSystemName(formData.userName, formData.title);
-    // Save wishlist logic here
-    navigate(`/wishlist/${systemName}`);
+    
+    try {
+      const response = await fetch('/api/wishlists', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          systemName,
+          createdAt: new Date().toISOString(),
+          lastEditedAt: new Date().toISOString(),
+          items: []
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create wishlist');
+      }
+
+      // Navigate to the wishlist page with edit mode enabled
+      navigate(`/wishlist/${systemName}?edit=true`);
+    } catch (error) {
+      console.error('Error creating wishlist:', error);
+      // Handle error (you might want to show an error message to the user)
+    }
   };
 
   const handleFormChange = (updates: Partial<typeof formData>) => {
