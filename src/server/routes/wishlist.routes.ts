@@ -3,10 +3,10 @@ import * as WishlistModel from '../models/wishlist.model';
 
 const router = Router();
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const wishlists = WishlistModel.getPublicWishlists(page);
+    const wishlists = await WishlistModel.getPublicWishlists(page);
     res.json(wishlists);
   } catch (error) {
     console.error('Error fetching wishlists:', error);
@@ -14,9 +14,9 @@ router.get('/', (req, res) => {
   }
 });
 
-router.get('/:systemName', (req, res) => {
+router.get('/:systemName', async (req, res) => {
   try {
-    const wishlist = WishlistModel.getWishlistBySystemName(req.params.systemName);
+    const wishlist = await WishlistModel.getWishlistBySystemName(req.params.systemName);
     if (!wishlist) {
       return res.status(404).json({ error: 'Wishlist not found' });
     }
@@ -27,9 +27,9 @@ router.get('/:systemName', (req, res) => {
   }
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const wishlist = WishlistModel.createWishlist(req.body);
+    const wishlist = await WishlistModel.createWishlist(req.body);
     res.status(201).json(wishlist);
   } catch (error) {
     console.error('Error creating wishlist:', error);
@@ -37,21 +37,21 @@ router.post('/', (req, res) => {
   }
 });
 
-router.put('/:systemName', (req, res) => {
+router.put('/:systemName', async (req, res) => {
   try {
     const { systemName } = req.params;
     const { password } = req.body;
 
-    const wishlist = WishlistModel.getWishlistBySystemName(systemName);
+    const wishlist = await WishlistModel.getWishlistBySystemName(systemName);
     if (!wishlist) {
       return res.status(404).json({ error: 'Wishlist not found' });
     }
 
-    if (!wishlist.isPublic && !WishlistModel.verifyWishlistPassword(systemName, password)) {
+    if (!wishlist.isPublic && !(await WishlistModel.verifyWishlistPassword(systemName, password))) {
       return res.status(403).json({ error: 'Invalid password' });
     }
 
-    const updatedWishlist = WishlistModel.updateWishlist(systemName, req.body);
+    const updatedWishlist = await WishlistModel.updateWishlist(systemName, req.body);
     res.json(updatedWishlist);
   } catch (error) {
     console.error('Error updating wishlist:', error);
@@ -59,11 +59,11 @@ router.put('/:systemName', (req, res) => {
   }
 });
 
-router.post('/:systemName/verify', (req, res) => {
+router.post('/:systemName/verify', async (req, res) => {
   try {
     const { systemName } = req.params;
     const { password } = req.body;
-    const isValid = WishlistModel.verifyWishlistPassword(systemName, password);
+    const isValid = await WishlistModel.verifyWishlistPassword(systemName, password);
     res.json({ isValid });
   } catch (error) {
     console.error('Error verifying password:', error);
