@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# While scraping is allowed for search engines,
+# please respect our rate limits and terms of service.
