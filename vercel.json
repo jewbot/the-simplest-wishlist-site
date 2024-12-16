@@ -9,14 +9,14 @@
       "use": "@vercel/static"
     },
     {
-      "src": "dist/server/index.js",
+      "src": "src/server/index.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/dist/server/index.js"
+      "dest": "/src/server/index.ts"
     },
     {
       "handle": "filesystem"
