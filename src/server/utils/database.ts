@@ -1,22 +1,28 @@
-import fs from 'fs';
-import path from 'path';
-import { DB_PATH } from '../config/constants';
+import { readFileSync } from 'fs';
+import { queries } from '../models/queries/wishlist.queries';
+import db from '../config/database';
 
-export const ensureDatabaseDirectory = () => {
-  const dbDir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-  }
-};
-
-export const initializeDatabase = (db: any, schemaPath: string) => {
+export const initializeDatabase = async () => {
   try {
-    ensureDatabaseDirectory();
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    db.exec(schema);
+    // Create tables if they don't exist
+    await db.batch([
+      { sql: queries.createWishlistsTable },
+      { sql: queries.createWishlistItemsTable }
+    ]);
+    
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
+    throw error;
+  }
+};
+
+export const executeQuery = async (query: string, params: any[] = []) => {
+  try {
+    const result = await db.execute(query, params);
+    return result.rows;
+  } catch (error) {
+    console.error('Error executing query:', error);
     throw error;
   }
 };

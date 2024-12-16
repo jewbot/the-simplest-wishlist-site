@@ -1,28 +1,18 @@
 import express from 'express';
-import fs from 'fs';
-import path from 'path';
-import db from './config/database';
-import wishlistRoutes from './routes/wishlist.routes';
+import { ENV } from './config/env';
+import { errorHandler } from './middleware/errorHandler';
+import { requestLogger } from './middleware/requestLogger';
+import { initializeDatabase } from './utils/database';
+import { wishlistRoutes } from './routes';
 
 const app = express();
 
-// Initialize database schema
-const schema = fs.readFileSync(path.join(__dirname, 'config', 'schema.sql'), 'utf8');
-db.exec(schema);
-
-// Middleware
+initializeDatabase();
 app.use(express.json());
-
-// Routes
+app.use(requestLogger);
 app.use('/api/wishlists', wishlistRoutes);
+app.use(errorHandler);
 
-// Error handling
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something broke!' });
-});
-
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(ENV.PORT, () => {
+  console.log(`Server running on port ${ENV.PORT}`);
 });

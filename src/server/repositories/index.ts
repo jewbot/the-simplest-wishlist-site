@@ -1,0 +1,1 @@
+export { WishlistRepository } from './wishlist.repository';
