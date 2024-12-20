@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --terminal-green: #00ff00;
+}
+
+body {
+  @apply bg-black text-white font-mono;
+}
+
+.text-terminal-green {
+  color: var(--terminal-green);
+}
+
+.border-terminal-green {
+  border-color: var(--terminal-green);
+}
